@@ -75,7 +75,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func checkPermission() {
-        let accessEnabled = AXIsProcessTrusted()
+        let permissionManager = PermissionManager.shared
+        let accessEnabled = permissionManager.hasAccessibilityPermission()
 
         let alert = NSAlert()
         if accessEnabled {
@@ -85,15 +86,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: "确定")
         } else {
             alert.messageText = "需要辅助功能权限"
-            alert.informativeText = "⚠️ 应用需要辅助功能权限来控制鼠标移动。\n\n请在系统设置中授权后重启应用。"
+            alert.informativeText = "⚠️ 应用需要辅助功能权限来控制鼠标移动。\n\n请在系统设置中授权。"
             alert.alertStyle = .warning
             alert.addButton(withTitle: "打开系统设置")
             alert.addButton(withTitle: "取消")
 
             let response = alert.runModal()
             if response == .alertFirstButtonReturn {
-                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-                NSWorkspace.shared.open(url)
+                permissionManager.openAccessibilitySettings()
             }
             return
         }

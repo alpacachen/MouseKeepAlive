@@ -7,9 +7,13 @@ class MouseMonitor {
     private var lastActivityTime: Date?
     private var keyboardMonitor: Any?
     private let settings = AppSettings.shared
-    private var hasShownPermissionAlert = false
+    private let permissionManager = PermissionManager.shared
     private(set) var moveCount: Int = 0
     var onMoveCountChanged: ((Int) -> Void)?
+
+    // 记录上次请求权限的时间，避免频繁弹窗
+    private var lastPermissionRequestTime: Date?
+    private let permissionRequestInterval: TimeInterval = 300 // 5分钟内不重复请求
 
     func start() {
         NSLog("🚀 活动监控器已启动（鼠标+键盘）")
@@ -18,12 +22,12 @@ class MouseMonitor {
         lastMousePosition = NSEvent.mouseLocation
         lastActivityTime = Date()
 
-        // 静默检查权限状态，不弹窗
-        let hasPermission = AXIsProcessTrusted()
+        // 检查权限状态（不弹窗）
+        let hasPermission = permissionManager.hasAccessibilityPermission()
         if hasPermission {
             NSLog("✅ 已获得辅助功能权限")
         } else {
-            NSLog("⚠️ 尚未获得辅助功能权限，将在需要时提示用户")
+            NSLog("⚠️ 尚未获得辅助功能权限，将在需要移动鼠标时提示用户")
         }
 
         // 启动键盘监听
@@ -69,7 +73,7 @@ class MouseMonitor {
         }
 
         // 验证监听器状态
-        let hasPermission = AXIsProcessTrusted()
+        let hasPermission = permissionManager.hasAccessibilityPermission()
         if keyboardMonitor != nil {
             NSLog("✅ 键盘监听器已创建（监听 keyDown/keyUp/flagsChanged）")
             if hasPermission {
@@ -90,21 +94,6 @@ class MouseMonitor {
         NSLog("⏱️ 活动时间已重置（键盘）")
     }
 
-    private func showPermissionAlert() {
-        let alert = NSAlert()
-        alert.messageText = "需要辅助功能权限"
-        alert.informativeText = "MouseKeepAlive 需要辅助功能权限来控制鼠标移动。\n\n请在打开的系统设置中找到 MouseKeepAlive 并勾选它。"
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "打开系统设置")
-        alert.addButton(withTitle: "稍后设置")
-
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn {
-            // 打开系统设置的辅助功能页面
-            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-            NSWorkspace.shared.open(url)
-        }
-    }
 
     func stop() {
         timer?.invalidate()
@@ -136,23 +125,32 @@ class MouseMonitor {
             let timeSinceLastActivity = Date().timeIntervalSince(lastActivity)
 
             if timeSinceLastActivity >= settings.inactivityThreshold {
-                NSLog("⚠️ 检测到 \(Int(timeSinceLastActivity)) 秒无活动（鼠标+键盘），执行随机移动")
+                NSLog("⚠️ 检测到 \(Int(timeSinceLastActivity)) 秒无活动（鼠标+键盘），准备执行随机移动")
 
-                // 在触发移动前再次检查权限
-                let hasPermission = AXIsProcessTrusted()
+                // 检查权限
+                let hasPermission = permissionManager.hasAccessibilityPermission()
                 NSLog("🔐 权限检查结果: \(hasPermission)")
 
                 if !hasPermission {
-                    // 只在第一次需要权限时弹窗提示
-                    NSLog("⚠️ 无辅助功能权限，hasShownPermissionAlert=\(hasShownPermissionAlert)")
-                    if !hasShownPermissionAlert {
-                        NSLog("❌ 无辅助功能权限，提示用户授权")
-                        showPermissionAlert()
-                        hasShownPermissionAlert = true
+                    // 检查是否需要请求权限（避免频繁弹窗）
+                    let shouldRequestPermission: Bool
+                    if let lastRequestTime = lastPermissionRequestTime {
+                        let timeSinceLastRequest = Date().timeIntervalSince(lastRequestTime)
+                        shouldRequestPermission = timeSinceLastRequest >= permissionRequestInterval
+                        if !shouldRequestPermission {
+                            NSLog("⚠️ 距上次权限请求仅 \(Int(timeSinceLastRequest)) 秒，暂不重复请求")
+                        }
                     } else {
-                        NSLog("⚠️ 已经提示过权限，不再重复提示")
+                        shouldRequestPermission = true
                     }
-                    // 重置计时器，避免频繁提示
+
+                    if shouldRequestPermission {
+                        NSLog("❌ 无辅助功能权限，提示用户授权")
+                        lastPermissionRequestTime = Date()
+                        permissionManager.requestAccessibilityPermission()
+                    }
+
+                    // 重置计时器，避免频繁检查
                     lastActivityTime = Date()
                     return
                 }
