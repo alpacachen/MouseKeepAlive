@@ -15,17 +15,15 @@ class MouseMonitor {
         lastMousePosition = NSEvent.mouseLocation
         lastActivityTime = Date()
 
+        // 启动时立即检查权限
+        checkAndRequestAccessibilityPermission()
+
         // 启动键盘监听
         startKeyboardMonitoring()
 
         // 每秒检查一次
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.checkActivity()
-        }
-
-        // 延迟检查权限，避免启动时的竞态条件
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.checkAndRequestAccessibilityPermission()
         }
     }
 
@@ -84,27 +82,15 @@ class MouseMonitor {
     }
 
     private func checkAndRequestAccessibilityPermission() {
-        // 首先静默检查权限
+        // 检查权限
         let accessEnabled = AXIsProcessTrusted()
 
         if accessEnabled {
             print("✅ 已获得辅助功能权限")
         } else {
-            print("⚠️ 需要辅助功能权限")
-            // 检查是否已经显示过提示（避免开发模式下每次都弹窗）
-            let hasShownPrompt = UserDefaults.standard.bool(forKey: "hasShownPermissionPrompt")
-
-            if !hasShownPrompt {
-                print("首次提示用户授权辅助功能权限")
-                UserDefaults.standard.set(true, forKey: "hasShownPermissionPrompt")
-
-                // 延迟显示权限提示
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.requestPermission()
-                }
-            } else {
-                print("权限未授予，但已提示过用户。请手动前往系统设置授权。")
-            }
+            print("⚠️ 需要辅助功能权限，将请求授权")
+            // 请求权限
+            requestPermission()
         }
     }
 
@@ -165,6 +151,17 @@ class MouseMonitor {
 
             if timeSinceLastActivity >= settings.inactivityThreshold {
                 print("⚠️ 检测到 \(Int(timeSinceLastActivity)) 秒无活动（鼠标+键盘），执行随机移动")
+
+                // 在触发移动前再次检查权限
+                let hasPermission = AXIsProcessTrusted()
+                if !hasPermission {
+                    print("❌ 无辅助功能权限，尝试请求权限")
+                    checkAndRequestAccessibilityPermission()
+                    // 重置计时器，避免频繁提示
+                    lastActivityTime = Date()
+                    return
+                }
+
                 performRandomMouseMove()
                 // 重置计时器
                 lastActivityTime = Date()
@@ -178,17 +175,6 @@ class MouseMonitor {
 
     private func performRandomMouseMove() {
         guard let currentPos = lastMousePosition else { return }
-
-        // 检查权限
-        let hasPermission = AXIsProcessTrusted()
-        if !hasPermission {
-            print("❌ 无辅助功能权限，无法移动鼠标")
-            // 权限被关闭了，显示提示
-            DispatchQueue.main.async { [weak self] in
-                self?.showPermissionAlert()
-            }
-            return
-        }
 
         // 生成随机偏移（确保移动明显可见）
         let range = CGFloat(settings.moveRange)

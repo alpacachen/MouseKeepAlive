@@ -76,37 +76,40 @@ echo -e "${YELLOW}🔍 检查应用签名...${NC}"
 codesign -dv "${APP_PATH}" 2>&1 | grep -E "Authority|Identifier|TeamIdentifier" || echo "未签名的应用"
 echo ""
 
-# 创建 DMG（可选）
-read -p "是否创建 DMG 安装包？(y/n) " -n 1 -r
+# 创建 DMG 安装包
+DMG_NAME="${APP_NAME}.dmg"
+echo -e "${YELLOW}📀 创建 DMG 安装包...${NC}"
+
+# 创建临时目录
+TMP_DMG_DIR="${BUILD_DIR}/dmg_temp"
+mkdir -p "${TMP_DMG_DIR}"
+
+# 复制应用到临时目录
+cp -R "${APP_PATH}" "${TMP_DMG_DIR}/"
+
+# 创建应用程序文件夹的符号链接
+ln -s /Applications "${TMP_DMG_DIR}/Applications"
+
+# 创建 DMG
+hdiutil create \
+    -volname "${APP_NAME}" \
+    -srcfolder "${TMP_DMG_DIR}" \
+    -ov \
+    -format UDZO \
+    "${EXPORT_PATH}/${DMG_NAME}"
+
+echo -e "${GREEN}✅ DMG 创建成功: ${EXPORT_PATH}/${DMG_NAME}${NC}"
+echo "DMG 大小: $(du -sh "${EXPORT_PATH}/${DMG_NAME}" | cut -f1)"
 echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    DMG_NAME="${APP_NAME}-${VERSION:-latest}.dmg"
-    echo -e "${YELLOW}📀 创建 DMG 安装包...${NC}"
 
-    # 创建临时目录
-    TMP_DMG_DIR="${BUILD_DIR}/dmg_temp"
-    mkdir -p "${TMP_DMG_DIR}"
+# 计算 DMG 的 SHA256 校验和
+echo -e "${YELLOW}🔐 计算 DMG SHA256 校验和...${NC}"
+shasum -a 256 "${EXPORT_PATH}/${DMG_NAME}" > "${EXPORT_PATH}/${DMG_NAME}.sha256"
+cat "${EXPORT_PATH}/${DMG_NAME}.sha256"
+echo ""
 
-    # 复制应用到临时目录
-    cp -R "${APP_PATH}" "${TMP_DMG_DIR}/"
-
-    # 创建应用程序文件夹的符号链接
-    ln -s /Applications "${TMP_DMG_DIR}/Applications"
-
-    # 创建 DMG
-    hdiutil create \
-        -volname "${APP_NAME}" \
-        -srcfolder "${TMP_DMG_DIR}" \
-        -ov \
-        -format UDZO \
-        "${EXPORT_PATH}/${DMG_NAME}"
-
-    echo -e "${GREEN}✅ DMG 创建成功: ${EXPORT_PATH}/${DMG_NAME}${NC}"
-    echo ""
-
-    # 清理临时目录
-    rm -rf "${TMP_DMG_DIR}"
-fi
+# 清理临时目录
+rm -rf "${TMP_DMG_DIR}"
 
 # 创建 ZIP 压缩包
 echo -e "${YELLOW}🗜️  创建 ZIP 压缩包...${NC}"
@@ -133,11 +136,8 @@ echo "下一步："
 echo "1. 测试应用是否正常运行"
 echo "2. 创建 GitHub Release"
 echo "3. 上传以下文件到 Release:"
-echo "   - ${ZIP_NAME}"
-echo "   - ${ZIP_NAME}.sha256"
-if [ -f "${EXPORT_PATH}/${DMG_NAME}" ]; then
-    echo "   - ${DMG_NAME}"
-fi
+echo "   - ${DMG_NAME}"
+echo "   - ${DMG_NAME}.sha256"
 echo ""
 echo "创建 Release 的命令示例:"
-echo "gh release create v1.0.0 '${EXPORT_PATH}/${ZIP_NAME}' '${EXPORT_PATH}/${ZIP_NAME}.sha256' --title 'v1.0.0' --notes '发布说明'"
+echo "gh release create v1.0.1 '${EXPORT_PATH}/${DMG_NAME}' '${EXPORT_PATH}/${DMG_NAME}.sha256' --title 'v1.0.1' --notes '发布说明'"
