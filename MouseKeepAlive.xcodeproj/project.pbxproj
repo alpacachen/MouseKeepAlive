@@ -11,6 +11,7 @@
 		1A000002000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000002000000000000001 /* AppDelegate.swift */; };
 		1A000003000000000000001 /* MouseMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000003000000000000001 /* MouseMonitor.swift */; };
 		1A000004000000000000001 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000005000000000000001 /* AppSettings.swift */; };
+		1A000006000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A000006000000000000001 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +20,7 @@
 		2A000003000000000000001 /* MouseMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseMonitor.swift; sourceTree = "<group>"; };
 		2A000004000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2A000005000000000000001 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		2A000006000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3A000001000000000000001 /* MouseKeepAlive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MouseKeepAlive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -40,6 +42,7 @@
 				2A000002000000000000001 /* AppDelegate.swift */,
 				2A000003000000000000001 /* MouseMonitor.swift */,
 				2A000005000000000000001 /* AppSettings.swift */,
+				2A000006000000000000001 /* Assets.xcassets */,
 				2A000004000000000000001 /* Info.plist */,
 				5A000002000000000000001 /* Products */,
 			);
@@ -111,6 +114,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1A000006000000000000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

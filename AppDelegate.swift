@@ -12,6 +12,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // 初始化鼠标监控器
         mouseMonitor = MouseMonitor()
+        mouseMonitor.onMoveCountChanged = { [weak self] count in
+            DispatchQueue.main.async {
+                self?.updateMenu()
+            }
+        }
         mouseMonitor.start()
     }
 
@@ -36,7 +41,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.isEnabled = false
         menu.addItem(statusItem)
 
-        let infoItem = NSMenuItem(title: "\(settings.getInactivityThresholdSeconds())秒无活动时移动鼠标 \(settings.getMoveRangeDescription())", action: nil, keyEquivalent: "")
+        let countItem = NSMenuItem(title: "自动移动次数: \(mouseMonitor?.moveCount ?? 0)", action: nil, keyEquivalent: "")
+        countItem.isEnabled = false
+        menu.addItem(countItem)
+
+        let infoItem = NSMenuItem(title: "\(settings.getInactivityThresholdSeconds())秒无活动时移动鼠标", action: nil, keyEquivalent: "")
         infoItem.isEnabled = false
         menu.addItem(infoItem)
 
@@ -53,17 +62,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let timeMenuItem = NSMenuItem(title: "休眠检测时间", action: nil, keyEquivalent: "")
         timeMenuItem.submenu = timeMenu
         menu.addItem(timeMenuItem)
-
-        // 鼠标移动范围配置
-        let rangeMenu = NSMenu()
-        rangeMenu.addItem(NSMenuItem(title: "5像素", action: #selector(setMoveRange5), keyEquivalent: ""))
-        rangeMenu.addItem(NSMenuItem(title: "10像素", action: #selector(setMoveRange10), keyEquivalent: ""))
-        rangeMenu.addItem(NSMenuItem(title: "20像素", action: #selector(setMoveRange20), keyEquivalent: ""))
-        rangeMenu.addItem(NSMenuItem(title: "50像素", action: #selector(setMoveRange50), keyEquivalent: ""))
-
-        let rangeMenuItem = NSMenuItem(title: "鼠标移动范围", action: nil, keyEquivalent: "")
-        rangeMenuItem.submenu = rangeMenu
-        menu.addItem(rangeMenuItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -133,34 +131,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func setInactivityTime120() {
         settings.inactivityThreshold = 120
-        DispatchQueue.main.async { [weak self] in
-            self?.updateMenu()
-        }
-    }
-
-    @objc func setMoveRange5() {
-        settings.moveRange = 5
-        DispatchQueue.main.async { [weak self] in
-            self?.updateMenu()
-        }
-    }
-
-    @objc func setMoveRange10() {
-        settings.moveRange = 10
-        DispatchQueue.main.async { [weak self] in
-            self?.updateMenu()
-        }
-    }
-
-    @objc func setMoveRange20() {
-        settings.moveRange = 20
-        DispatchQueue.main.async { [weak self] in
-            self?.updateMenu()
-        }
-    }
-
-    @objc func setMoveRange50() {
-        settings.moveRange = 50
         DispatchQueue.main.async { [weak self] in
             self?.updateMenu()
         }
