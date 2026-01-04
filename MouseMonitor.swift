@@ -179,7 +179,18 @@ class MouseMonitor {
     private func performRandomMouseMove() {
         guard let currentPos = lastMousePosition else { return }
 
-        // 生成小范围随机偏移
+        // 检查权限
+        let hasPermission = AXIsProcessTrusted()
+        if !hasPermission {
+            print("❌ 无辅助功能权限，无法移动鼠标")
+            // 权限被关闭了，显示提示
+            DispatchQueue.main.async { [weak self] in
+                self?.showPermissionAlert()
+            }
+            return
+        }
+
+        // 生成随机偏移（确保移动明显可见）
         let range = CGFloat(settings.moveRange)
         let deltaX = CGFloat.random(in: -range...range)
         let deltaY = CGFloat.random(in: -range...range)
@@ -187,18 +198,20 @@ class MouseMonitor {
         let newX = currentPos.x + deltaX
         let newY = currentPos.y + deltaY
 
+        print("🖱️ 准备移动鼠标: (\(Int(currentPos.x)), \(Int(currentPos.y))) -> (\(Int(newX)), \(Int(newY))) [偏移: (\(Int(deltaX)), \(Int(deltaY)))]")
+
         // 使用 CGEvent 移动鼠标
         if let moveEvent = CGEvent(mouseEventSource: nil,
                                    mouseType: .mouseMoved,
                                    mouseCursorPosition: CGPoint(x: newX, y: newY),
                                    mouseButton: .left) {
             moveEvent.post(tap: .cghidEventTap)
-            print("鼠标已移动到: (\(Int(newX)), \(Int(newY)))")
+            print("✅ 鼠标已移动到: (\(Int(newX)), \(Int(newY)))")
 
             // 更新记录的位置
             lastMousePosition = CGPoint(x: newX, y: newY)
         } else {
-            print("⚠️ 无法创建鼠标移动事件，可能需要辅助功能权限")
+            print("❌ 无法创建鼠标移动事件")
         }
     }
 

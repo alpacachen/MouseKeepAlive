@@ -21,7 +21,7 @@ class AppSettings: ObservableObject {
         self.inactivityThreshold = savedThreshold > 0 ? savedThreshold : 10.0
 
         let savedRange = UserDefaults.standard.integer(forKey: "moveRange")
-        self.moveRange = savedRange > 0 ? savedRange : 10
+        self.moveRange = savedRange > 0 ? savedRange : 20
     }
 
     func getInactivityThresholdSeconds() -> Int {
